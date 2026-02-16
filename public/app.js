@@ -138,7 +138,7 @@ function renderBooks(books) {
       <div class="book-info">
         <h3 class="book-title">${escapeHtml(book.title)}</h3>
         ${book.author ? `<p class="book-author">${escapeHtml(book.author)}</p>` : ''}
-        ${book.isbn ? `<p class="book-isbn">ISBN: ${escapeHtml(book.isbn)}</p>` : ''}
+        <p class="book-id">ID: ${book.id}${book.isbn ? ` · ISBN: ${escapeHtml(book.isbn)}` : ''}</p>
         ${book.publisher || book.publish_date ? `<p class="book-publisher">${escapeHtml(book.publisher || '')}${book.publisher && book.publish_date ? ', ' : ''}${escapeHtml(book.publish_date || '')}</p>` : ''}
         <div class="book-meta">
           <span class="badge badge-${book.type}">${book.type}</span>
@@ -192,6 +192,7 @@ function openModal(bookId = null) {
   } else {
     modalTitle.textContent = 'Add Book';
     document.getElementById('bookId').value = '';
+    document.getElementById('idGroup').style.display = 'none';
   }
 
   bookModal.style.display = 'block';
@@ -203,6 +204,8 @@ async function loadBook(id) {
     const book = await response.json();
 
     document.getElementById('bookId').value = book.id;
+    document.getElementById('displayId').value = book.id;
+    document.getElementById('idGroup').style.display = 'block';
     document.getElementById('title').value = book.title || '';
     document.getElementById('author').value = book.author || '';
     document.getElementById('isbn').value = book.isbn || '';
