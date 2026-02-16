@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Book Manager</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <h1>Book Manager</h1>
+        <div class="stats" id="stats"></div>
+      </div>
+      <button id="addBookBtn" class="btn btn-primary">+ Add Book</button>
+    </header>
+
+    <div class="filters">
+      <div class="input-wrapper">
+        <input type="text" id="searchInput" placeholder="Search by title, author, or ISBN...">
+        <button type="button" class="clear-btn" data-target="searchInput">&times;</button>
+      </div>
+      <select id="typeFilter">
+        <option value="">All Types</option>
+        <option value="physical">Physical</option>
+        <option value="ebook">Ebook</option>
+      </select>
+      <select id="statusFilter">
+        <option value="">All Status</option>
+        <option value="unread">Unread</option>
+        <option value="reading">Reading</option>
+        <option value="finished">Finished</option>
+      </select>
+      <div class="input-wrapper">
+        <input type="text" id="genreFilter" placeholder="Filter by genre...">
+        <button type="button" class="clear-btn" data-target="genreFilter">&times;</button>
+      </div>
+      <select id="sortSelect">
+        <option value="updated">Sort: Recently Updated</option>
+        <option value="title">Sort: Title</option>
+        <option value="author">Sort: Author</option>
+        <option value="rating">Sort: Rating</option>
+      </select>
+      <div class="view-toggle">
+        <button type="button" class="view-btn active" data-view="grid" title="Grid view">&#9638;</button>
+        <button type="button" class="view-btn" data-view="list" title="List view">&#9776;</button>
+      </div>
+    </div>
+
+    <div id="booksList" class="books-grid"></div>
+  </div>
+
+  <!-- Add/Edit Modal -->
+  <div id="bookModal" class="modal">
+    <div class="modal-content">
+      <span class="close">&times;</span>
+      <h2 id="modalTitle">Add Book</h2>
+      <form id="bookForm">
+        <input type="hidden" id="bookId">
+
+        <div class="form-group">
+          <label for="title">Title *</label>
+          <input type="text" id="title" required>
+        </div>
+
+        <div class="form-group">
+          <label for="author">Author(s)</label>
+          <input type="text" id="author" placeholder="e.g., John Doe & Jane Smith">
+        </div>
+
+        <div class="form-group">
+          <label for="isbn">ISBN</label>
+          <input type="text" id="isbn" placeholder="e.g., 978-0-13-468599-1">
+        </div>
+
+        <div class="form-group">
+          <label for="publisher">Publisher</label>
+          <input type="text" id="publisher">
+        </div>
+
+        <div class="form-group">
+          <label for="publishDate">Publish Date</label>
+          <input type="text" id="publishDate" placeholder="e.g., 2020 or 2020-05-15">
+        </div>
+
+        <div class="form-group">
+          <label for="genre">Genre</label>
+          <input type="text" id="genre">
+        </div>
+
+        <div class="form-group">
+          <label for="type">Type *</label>
+          <select id="type" required>
+            <option value="physical">Physical</option>
+            <option value="ebook">Ebook</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="locationGroup">
+          <label for="location">Location</label>
+          <input type="text" id="location" placeholder="e.g., Living room shelf">
+        </div>
+
+        <div class="form-group" id="filePathGroup" style="display: none;">
+          <label for="filePath">File Path / Source</label>
+          <input type="text" id="filePath" placeholder="e.g., /books/mybook.epub">
+        </div>
+
+        <div class="form-group">
+          <label for="coverUrl">Cover Image URL</label>
+          <input type="text" id="coverUrl" placeholder="https://...">
+        </div>
+
+        <div class="form-group">
+          <label for="readingStatus">Reading Status</label>
+          <select id="readingStatus">
+            <option value="unread">Unread</option>
+            <option value="reading">Reading</option>
+            <option value="finished">Finished</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="progress">Progress (%)</label>
+          <input type="number" id="progress" min="0" max="100" value="0">
+        </div>
+
+        <div class="form-group">
+          <label for="rating">Rating</label>
+          <div class="star-rating" id="starRating">
+            <span class="star" data-value="1">&#9733;</span>
+            <span class="star" data-value="2">&#9733;</span>
+            <span class="star" data-value="3">&#9733;</span>
+            <span class="star" data-value="4">&#9733;</span>
+            <span class="star" data-value="5">&#9733;</span>
+          </div>
+          <input type="hidden" id="rating">
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notes</label>
+          <textarea id="notes" rows="3"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="modal">
+    <div class="modal-content modal-small">
+      <h2>Delete Book</h2>
+      <p>Are you sure you want to delete "<span id="deleteBookTitle"></span>"?</p>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
