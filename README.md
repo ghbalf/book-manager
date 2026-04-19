@@ -7,7 +7,7 @@ A web application for managing physical books and ebooks with PostgreSQL databas
 - Add, view, edit, delete books
 - Book types: physical or ebook
 - Physical books: location field (e.g., "living room shelf")
-- Ebooks: file path field
+- Ebooks: file path field with built-in EPUB reader
 - Cover images (URL-based or local)
 - Publisher and publish date
 - Reading progress (percentage)
@@ -18,25 +18,47 @@ A web application for managing physical books and ebooks with PostgreSQL databas
 - Sort by title, author (family name), rating, or recently updated
 - Grid and list view toggle
 - Book statistics (total, physical, ebooks)
+- UI languages: English and German
+- Light and dark theme with system-preference default
+
+### Calibre integration (UI)
+
+- **Sync from Calibre** one-click button in the header — imports new
+  ebooks from a Calibre library and updates their metadata live, with
+  an SSE-driven progress modal
+- **Settings page** for editable paths and options (Calibre path,
+  covers directory, default language, cover-lookup delay)
+- **Re-scan all metadata** action in the Settings page for full refresh
+- **ISBN lookup** button on the Add/Edit dialog — fills title, author,
+  publisher, publish date, genre, and cover from Open Library or
+  Google Books, prompting before overwriting non-empty fields
+- **Cover lookup** button on the Add/Edit dialog — fills just the
+  Cover Image URL from ISBN
 
 ## Project Structure
 
 ```
 books/
-├── package.json           # Dependencies and scripts
-├── server.js              # Express server & API routes
-├── db.js                  # PostgreSQL connection & queries
-├── schema.sql             # Database schema
-├── public/                # Frontend files
-│   ├── index.html         # Main UI
-│   ├── style.css          # Styles
-│   └── app.js             # Frontend JavaScript
-├── covers/                # Downloaded cover images
-├── import-calibre.js      # Import ebooks from Calibre
-├── update-calibre-metadata.js  # Update Calibre books with publisher/date
-├── add-physical.js        # Interactive script to add physical books
-├── fetch-covers.js        # Fetch covers for physical books
-└── download-covers.js     # Download external covers locally
+├── package.json                # Dependencies and scripts
+├── server.js                   # Express server & API routes
+├── db.js                       # PostgreSQL connection & queries
+├── config.js                   # Editable-settings loader (config.json)
+├── config.json                 # User config (gitignored, auto-created)
+├── schema.sql                  # Database schema
+├── public/                     # Frontend files
+│   ├── index.html              # Main UI
+│   ├── style.css               # Styles
+│   ├── app.js                  # Frontend JavaScript
+│   └── i18n.js                 # EN/DE translations and theme toggle
+├── covers/                     # Downloaded cover images (gitignored)
+├── lookup-isbn.js              # Shared Open Library / Google Books lookup
+├── calibre-sync.js             # In-process sync coordinator with SSE
+├── import-calibre.js           # Import ebooks from Calibre (CLI + module)
+├── update-calibre-metadata.js  # Update Calibre books (CLI + module)
+├── convert-to-epub.js          # Convert Calibre entries to EPUB
+├── add-physical.js             # Interactive/batch ISBN import
+├── fetch-covers.js             # Fetch covers for physical books
+└── download-covers.js          # Download external covers locally
 ```
 
 ## Setup
@@ -67,7 +89,7 @@ psql -d bookmanager -f schema.sql
 
 ### Environment Variables
 
-Configure the database connection via environment variables:
+Secrets and connection info live in environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -77,7 +99,24 @@ Configure the database connection via environment variables:
 | `DB_USER` | postgres | Database user |
 | `DB_PASSWORD` | postgres | Database password |
 | `PORT` | 3000 | Server port |
-| `CALIBRE_PATH` | ~/Documents/Calibre Library | Path to Calibre library |
+
+> **Note:** The Calibre library path used to be an env variable
+> (`CALIBRE_PATH`). It now lives in `config.json` and is editable from
+> the in-app Settings page. Database credentials remain env-only so
+> that the web UI cannot change them.
+
+### Application Config (`config.json`)
+
+Non-secret, user-editable options are stored in `config.json` in the
+project root. The file is created automatically on first save through
+the Settings dialog. It is gitignored.
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `calibrePath` | `~/Documents/Calibre Library` | Path to the Calibre library |
+| `coversDir` | `./covers` | Directory for downloaded cover images |
+| `defaultLanguage` | `en` | UI language fallback (`en` / `de`) |
+| `coverLookupDelayMs` | `200` | Delay between external cover lookups |
 
 ### Running the Server
 
@@ -95,6 +134,10 @@ Open http://localhost:3000 in your browser.
 
 ## Scripts
 
+All Calibre-related scripts below are also exposed through the UI
+(header **Sync** button and the **Settings** page). The CLIs remain
+available for scripting or one-off use.
+
 ### import-calibre.js
 
 Import ebooks from a Calibre library.
@@ -111,6 +154,9 @@ node import-calibre.js [calibre-path]
 - Extracts title, authors, ISBN, publisher, publish date, and file paths
 - Imports books as ebooks with status "unread"
 - Skips books that already exist (matching title + author)
+
+Also exported as `importFromCalibre({ calibrePath, onProgress })` for
+in-process use (returns `{ imported, skipped, ids }`).
 
 **Example:**
 ```bash
@@ -134,6 +180,24 @@ node update-calibre-metadata.js [calibre-path]
 - Finds ebooks in the database that match Calibre books
 - Updates publisher and publish_date if missing
 - Skips books that already have metadata
+
+Also exported as `updateCalibreMetadata({ calibrePath, ids, onProgress })`.
+When `ids` is provided the update is restricted to those book IDs
+(used by the sync endpoint to refresh only the books it just
+imported).
+
+---
+
+### convert-to-epub.js
+
+Convert Calibre library entries that are not already EPUB into EPUB
+using the Calibre `ebook-convert` CLI.
+
+```bash
+node convert-to-epub.js [--dry-run]
+```
+
+Produces `failed-conversions.txt` listing titles it could not convert.
 
 ---
 
@@ -197,6 +261,8 @@ node download-covers.js
 
 ## API Endpoints
 
+### Books
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/stats` | Get book counts (total, physical, ebooks) |
@@ -205,6 +271,7 @@ node download-covers.js
 | POST | `/api/books` | Add new book |
 | PUT | `/api/books/:id` | Update book |
 | DELETE | `/api/books/:id` | Delete book |
+| GET | `/api/books/:id/read` | Serve the book's EPUB file for reading |
 | GET | `/api/covers/:id` | Get cover image for book |
 
 ### Query Parameters for GET /api/books
@@ -216,6 +283,37 @@ node download-covers.js
 | `status` | Filter by status: `unread`, `reading`, `finished` |
 | `genre` | Filter by genre (partial match) |
 | `sort` | Sort by: `updated`, `title`, `author`, `rating` |
+
+### Config
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/config` | Return current config and read-only DB info |
+| PUT | `/api/config` | Patch editable config keys |
+
+### Metadata / cover lookup
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/lookup/isbn?isbn=…` | Full metadata lookup by ISBN |
+| GET | `/api/lookup/cover?isbn=…` | Cover-image URL lookup by ISBN |
+
+Both try Open Library first, then Google Books. They return `404` if
+neither provider has a hit.
+
+### Calibre sync
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/calibre/sync` | Start an import + metadata-for-new run |
+| POST | `/api/calibre/rescan` | Start a full metadata rescan |
+| GET | `/api/calibre/sync/stream` | Server-Sent Events stream of progress |
+
+Only one sync can run at a time; a second `POST` returns `409`. The
+SSE stream sends `{ type: 'progress', phase, current, total, title }`
+events during a run and a final `{ type: 'done', ... }` or
+`{ type: 'error', ... }` event. Opening the stream without a running
+job emits a single `{ type: 'idle' }` event.
 
 ---
 
@@ -342,14 +440,13 @@ server {
 
 ### Serving Calibre Covers
 
-If importing from Calibre and want to serve covers, ensure the Calibre library path is accessible:
+If importing from Calibre and serving covers, make sure the Calibre
+library path (set via the Settings page, stored in `config.json`) is
+readable by the server process.
 
-```bash
-# Set environment variable
-export CALIBRE_PATH=/path/to/Calibre\ Library
-```
+To make the library self-contained and survive upstream URL rot,
+download all external covers locally:
 
-Or download all covers locally:
 ```bash
 node download-covers.js
 ```

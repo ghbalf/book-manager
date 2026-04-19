@@ -1,6 +1,6 @@
 {
   "name": "book-manager",
-  "version": "1.0.0",
+  "version": "0.1.0-alpha",
   "description": "A web application for managing physical books and ebooks",
   "main": "server.js",
   "scripts": {
