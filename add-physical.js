@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const readline = require('readline');
 const { pool } = require('./db');
+const { lookupISBN } = require('./lookup-isbn');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -10,55 +11,6 @@ const rl = readline.createInterface({
 
 function prompt(question) {
   return new Promise(resolve => rl.question(question, resolve));
-}
-
-async function lookupISBN(isbn) {
-  // Clean ISBN (remove dashes and spaces)
-  const cleanISBN = isbn.replace(/[-\s]/g, '');
-
-  // Try Open Library API
-  const url = `https://openlibrary.org/api/books?bibkeys=ISBN:${cleanISBN}&format=json&jscmd=data`;
-
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-
-    const key = `ISBN:${cleanISBN}`;
-    if (data[key]) {
-      const book = data[key];
-      return {
-        title: book.title,
-        authors: book.authors?.map(a => a.name).join(' & ') || null,
-        isbn: cleanISBN,
-        publisher: book.publishers?.[0]?.name || null,
-        publish_date: book.publish_date || null,
-        cover_url: book.cover?.medium || book.cover?.small || null,
-        genre: book.subjects?.[0]?.name || null
-      };
-    }
-
-    // Try Google Books API as fallback
-    const googleUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanISBN}`;
-    const googleResponse = await fetch(googleUrl);
-    const googleData = await googleResponse.json();
-
-    if (googleData.items?.length > 0) {
-      const book = googleData.items[0].volumeInfo;
-      return {
-        title: book.title,
-        authors: book.authors?.join(' & ') || null,
-        isbn: cleanISBN,
-        publisher: book.publisher || null,
-        publish_date: book.publishedDate || null,
-        cover_url: book.imageLinks?.thumbnail || null,
-        genre: book.categories?.[0] || null
-      };
-    }
-
-    return null;
-  } catch (error) {
-    throw new Error(`API lookup failed: ${error.message}`);
-  }
 }
 
 async function checkDuplicate(isbn) {

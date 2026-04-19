@@ -10,41 +10,48 @@
   <div class="container">
     <header>
       <div class="header-left">
-        <h1>Book Manager</h1>
+        <h1 data-i18n="pageTitle">Book Manager</h1>
         <div class="stats" id="stats"></div>
       </div>
-      <button id="addBookBtn" class="btn btn-primary">+ Add Book</button>
+      <div class="header-controls">
+        <button type="button" class="lang-btn active" data-lang="en">EN</button>
+        <button type="button" class="lang-btn" data-lang="de">DE</button>
+        <button type="button" id="themeToggleBtn">🌙</button>
+        <button type="button" id="syncBtn" class="btn btn-secondary" data-i18n="syncFromCalibre" data-i18n-title="syncFromCalibreTitle">⟳ Sync</button>
+        <button type="button" id="configBtn" class="btn btn-secondary" data-i18n-title="configTitle" title="Settings">⚙</button>
+        <button id="addBookBtn" class="btn btn-primary" data-i18n="addBook">+ Add Book</button>
+      </div>
     </header>
 
     <div class="filters">
       <div class="input-wrapper">
-        <input type="text" id="searchInput" placeholder="Search by title, author, or ISBN...">
+        <input type="text" id="searchInput" placeholder="Search by title, author, or ISBN..." data-i18n-placeholder="searchPlaceholder">
         <button type="button" class="clear-btn" data-target="searchInput">&times;</button>
       </div>
       <select id="typeFilter">
-        <option value="">All Types</option>
-        <option value="physical">Physical</option>
-        <option value="ebook">Ebook</option>
+        <option value="" data-i18n="allTypes">All Types</option>
+        <option value="physical" data-i18n="physical">Physical</option>
+        <option value="ebook" data-i18n="ebook">Ebook</option>
       </select>
       <select id="statusFilter">
-        <option value="">All Status</option>
-        <option value="unread">Unread</option>
-        <option value="reading">Reading</option>
-        <option value="finished">Finished</option>
+        <option value="" data-i18n="allStatus">All Status</option>
+        <option value="unread" data-i18n="unread">Unread</option>
+        <option value="reading" data-i18n="reading">Reading</option>
+        <option value="finished" data-i18n="finished">Finished</option>
       </select>
       <div class="input-wrapper">
-        <input type="text" id="genreFilter" placeholder="Filter by genre...">
+        <input type="text" id="genreFilter" placeholder="Filter by genre..." data-i18n-placeholder="genrePlaceholder">
         <button type="button" class="clear-btn" data-target="genreFilter">&times;</button>
       </div>
       <select id="sortSelect">
-        <option value="updated">Sort: Recently Updated</option>
-        <option value="title">Sort: Title</option>
-        <option value="author">Sort: Author</option>
-        <option value="rating">Sort: Rating</option>
+        <option value="updated" data-i18n="sortUpdated">Sort: Recently Updated</option>
+        <option value="title" data-i18n="sortTitle">Sort: Title</option>
+        <option value="author" data-i18n="sortAuthor">Sort: Author</option>
+        <option value="rating" data-i18n="sortRating">Sort: Rating</option>
       </select>
       <div class="view-toggle">
-        <button type="button" class="view-btn active" data-view="grid" title="Grid view">&#9638;</button>
-        <button type="button" class="view-btn" data-view="list" title="List view">&#9776;</button>
+        <button type="button" class="view-btn active" data-view="grid" title="Grid view" data-i18n-title="gridView">&#9638;</button>
+        <button type="button" class="view-btn" data-view="list" title="List view" data-i18n-title="listView">&#9776;</button>
       </div>
     </div>
 
@@ -55,84 +62,90 @@
   <div id="bookModal" class="modal">
     <div class="modal-content">
       <span class="close">&times;</span>
-      <h2 id="modalTitle">Add Book</h2>
+      <h2 id="modalTitle" data-i18n="addBookTitle">Add Book</h2>
       <form id="bookForm">
         <input type="hidden" id="bookId">
 
         <div class="form-group" id="idGroup" style="display: none;">
-          <label for="displayId">ID</label>
+          <label for="displayId" data-i18n="labelId">ID</label>
           <input type="text" id="displayId" readonly>
         </div>
 
         <div class="form-group">
-          <label for="title">Title *</label>
+          <label for="title" data-i18n="labelTitle">Title *</label>
           <input type="text" id="title" required>
         </div>
 
         <div class="form-group">
-          <label for="author">Author(s)</label>
-          <input type="text" id="author" placeholder="e.g., John Doe & Jane Smith">
+          <label for="author" data-i18n="labelAuthor">Author(s)</label>
+          <input type="text" id="author" placeholder="e.g., John Doe & Jane Smith" data-i18n-placeholder="authorPlaceholder">
         </div>
 
         <div class="form-group">
-          <label for="isbn">ISBN</label>
-          <input type="text" id="isbn" placeholder="e.g., 978-0-13-468599-1">
+          <label for="isbn" data-i18n="labelIsbn">ISBN</label>
+          <div class="input-with-button">
+            <input type="text" id="isbn" placeholder="e.g., 978-0-13-468599-1" data-i18n-placeholder="isbnPlaceholder">
+            <button type="button" id="lookupIsbnBtn" class="input-action-btn" data-i18n="lookupIsbnBtn" data-i18n-title="lookupIsbnTitle">🔍</button>
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="publisher">Publisher</label>
+          <label for="publisher" data-i18n="labelPublisher">Publisher</label>
           <input type="text" id="publisher">
         </div>
 
         <div class="form-group">
-          <label for="publishDate">Publish Date</label>
-          <input type="text" id="publishDate" placeholder="e.g., 2020 or 2020-05-15">
+          <label for="publishDate" data-i18n="labelPublishDate">Publish Date</label>
+          <input type="text" id="publishDate" placeholder="e.g., 2020 or 2020-05-15" data-i18n-placeholder="publishDatePlaceholder">
         </div>
 
         <div class="form-group">
-          <label for="genre">Genre</label>
+          <label for="genre" data-i18n="labelGenre">Genre</label>
           <input type="text" id="genre">
         </div>
 
         <div class="form-group">
-          <label for="type">Type *</label>
+          <label for="type" data-i18n="labelType">Type *</label>
           <select id="type" required>
-            <option value="physical">Physical</option>
-            <option value="ebook">Ebook</option>
+            <option value="physical" data-i18n="physical">Physical</option>
+            <option value="ebook" data-i18n="ebook">Ebook</option>
           </select>
         </div>
 
         <div class="form-group" id="locationGroup">
-          <label for="location">Location</label>
-          <input type="text" id="location" placeholder="e.g., Living room shelf">
+          <label for="location" data-i18n="labelLocation">Location</label>
+          <input type="text" id="location" placeholder="e.g., Living room shelf" data-i18n-placeholder="locationPlaceholder">
         </div>
 
         <div class="form-group" id="filePathGroup" style="display: none;">
-          <label for="filePath">File Path / Source</label>
-          <input type="text" id="filePath" placeholder="e.g., /books/mybook.epub">
+          <label for="filePath" data-i18n="labelFilePath">File Path / Source</label>
+          <input type="text" id="filePath" placeholder="e.g., /books/mybook.epub" data-i18n-placeholder="filePathPlaceholder">
         </div>
 
         <div class="form-group">
-          <label for="coverUrl">Cover Image URL</label>
-          <input type="text" id="coverUrl" placeholder="https://...">
+          <label for="coverUrl" data-i18n="labelCoverUrl">Cover Image URL</label>
+          <div class="input-with-button">
+            <input type="text" id="coverUrl" placeholder="https://..." data-i18n-placeholder="coverUrlPlaceholder">
+            <button type="button" id="lookupCoverBtn" class="input-action-btn" data-i18n="lookupCoverBtn" data-i18n-title="lookupCoverTitle">🔍</button>
+          </div>
         </div>
 
         <div class="form-group">
-          <label for="readingStatus">Reading Status</label>
+          <label for="readingStatus" data-i18n="labelReadingStatus">Reading Status</label>
           <select id="readingStatus">
-            <option value="unread">Unread</option>
-            <option value="reading">Reading</option>
-            <option value="finished">Finished</option>
+            <option value="unread" data-i18n="unread">Unread</option>
+            <option value="reading" data-i18n="reading">Reading</option>
+            <option value="finished" data-i18n="finished">Finished</option>
           </select>
         </div>
 
         <div class="form-group">
-          <label for="progress">Progress (%)</label>
+          <label for="progress" data-i18n="labelProgress">Progress (%)</label>
           <input type="number" id="progress" min="0" max="100" value="0">
         </div>
 
         <div class="form-group">
-          <label for="rating">Rating</label>
+          <label for="rating" data-i18n="labelRating">Rating</label>
           <div class="star-rating" id="starRating">
             <span class="star" data-value="1">&#9733;</span>
             <span class="star" data-value="2">&#9733;</span>
@@ -144,13 +157,13 @@
         </div>
 
         <div class="form-group">
-          <label for="notes">Notes</label>
+          <label for="notes" data-i18n="labelNotes">Notes</label>
           <textarea id="notes" rows="3"></textarea>
         </div>
 
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" id="cancelBtn">Cancel</button>
-          <button type="submit" class="btn btn-primary">Save</button>
+          <button type="button" class="btn btn-secondary" id="cancelBtn" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
         </div>
       </form>
     </div>
@@ -159,15 +172,118 @@
   <!-- Delete Confirmation Modal -->
   <div id="deleteModal" class="modal">
     <div class="modal-content modal-small">
-      <h2>Delete Book</h2>
-      <p>Are you sure you want to delete "<span id="deleteBookTitle"></span>"?</p>
+      <h2 data-i18n="deleteBookTitle">Delete Book</h2>
+      <p><span data-i18n="deleteConfirmPrefix">Are you sure you want to delete "</span><span id="deleteBookTitle"></span><span data-i18n="deleteConfirmSuffix">"?</span></p>
       <div class="form-actions">
-        <button type="button" class="btn btn-secondary" id="cancelDeleteBtn">Cancel</button>
-        <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+        <button type="button" class="btn btn-secondary" id="cancelDeleteBtn" data-i18n="cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteBtn" data-i18n="delete">Delete</button>
       </div>
     </div>
   </div>
 
+  <!-- Physical Read Modal -->
+  <div id="readPhysicalModal" class="modal">
+    <div class="modal-content modal-small">
+      <h2 data-i18n="readPhysicalTitle">Find Your Book</h2>
+      <div class="read-physical-body">
+        <div class="read-physical-icon">&#128214;</div>
+        <p data-i18n="readPhysicalMessage">This is a physical book. Pick it up from your shelf!</p>
+        <p id="readPhysicalBookTitle" class="read-physical-book-title"></p>
+        <div id="readPhysicalLocation" class="read-physical-location"></div>
+      </div>
+      <div class="form-actions" style="justify-content: center;">
+        <button type="button" class="btn btn-secondary" id="closeReadPhysicalBtn" data-i18n="close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Config Modal -->
+  <div id="configModal" class="modal">
+    <div class="modal-content">
+      <span class="close" id="configCloseX">&times;</span>
+      <h2 data-i18n="configTitle">Settings</h2>
+      <form id="configForm">
+        <div class="form-group">
+          <label for="configCalibrePath" data-i18n="configCalibrePath">Calibre library path</label>
+          <input type="text" id="configCalibrePath">
+        </div>
+        <div class="form-group">
+          <label for="configCoversDir" data-i18n="configCoversDir">Covers directory</label>
+          <input type="text" id="configCoversDir">
+        </div>
+        <div class="form-group">
+          <label for="configDefaultLanguage" data-i18n="configDefaultLanguage">Default language</label>
+          <select id="configDefaultLanguage">
+            <option value="en">English</option>
+            <option value="de">Deutsch</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="configCoverDelay" data-i18n="configCoverDelay">Cover lookup delay (ms)</label>
+          <input type="number" id="configCoverDelay" min="0" step="50">
+        </div>
+        <div class="config-section">
+          <h3 data-i18n="configDbSection">Database (read-only)</h3>
+          <div id="configDbGrid" class="config-db-grid"></div>
+        </div>
+        <div class="config-section">
+          <h3 data-i18n="configActionsSection">Maintenance</h3>
+          <button type="button" class="btn btn-secondary" id="configRescanBtn" data-i18n="configRescanAll">Re-scan all metadata from Calibre</button>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="configCancelBtn" data-i18n="cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" data-i18n="save">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sync Progress Modal -->
+  <div id="syncModal" class="modal">
+    <div class="modal-content modal-small">
+      <h2 id="syncModalTitle" data-i18n="syncModalTitle">Syncing from Calibre</h2>
+      <div class="sync-body">
+        <div id="syncPhase" class="sync-phase" data-i18n="syncStarting">Starting…</div>
+        <div class="progress-bar">
+          <div id="syncProgressFill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div id="syncCounter" class="sync-counter"></div>
+        <div id="syncCurrentTitle" class="sync-current-title"></div>
+        <div id="syncResult" class="sync-result"></div>
+      </div>
+      <div class="form-actions" style="justify-content: center;">
+        <button type="button" class="btn btn-secondary" id="syncCloseBtn" data-i18n="close" disabled>Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Epub Reader Overlay -->
+  <div id="readerOverlay" class="reader-overlay">
+    <div class="reader-toolbar">
+      <div class="reader-toolbar-left">
+        <button type="button" id="readerCloseBtn" class="reader-btn" data-i18n-title="readerClose">&#10005;</button>
+      </div>
+      <div class="reader-toolbar-center">
+        <span id="readerBookTitle" class="reader-book-title"></span>
+      </div>
+      <div class="reader-toolbar-right">
+        <button type="button" id="readerPrevBtn" class="reader-btn" data-i18n-title="readerPrev">&#9664;</button>
+        <button type="button" id="readerTocBtn" class="reader-btn" data-i18n-title="readerToc">&#9776;</button>
+        <button type="button" id="readerNextBtn" class="reader-btn" data-i18n-title="readerNext">&#9654;</button>
+        <button type="button" id="readerFontSmallerBtn" class="reader-btn" data-i18n-title="readerFontSmaller">A−</button>
+        <button type="button" id="readerFontLargerBtn" class="reader-btn" data-i18n-title="readerFontLarger">A+</button>
+      </div>
+    </div>
+    <div id="epubViewer" class="reader-viewer"></div>
+    <div id="readerTocPanel" class="reader-toc-panel">
+      <h3 data-i18n="readerToc">Table of Contents</h3>
+      <ul id="readerTocList"></ul>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/epubjs@0.3.93/dist/epub.min.js"></script>
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -3,53 +3,61 @@ const path = require('path');
 const os = require('os');
 const { pool } = require('./db');
 
-const CALIBRE_PATH = process.argv[2] || path.join(os.homedir(), 'Documents', 'Calibre Library');
-const METADATA_DB = path.join(CALIBRE_PATH, 'metadata.db');
+const DEFAULT_CALIBRE_PATH = path.join(os.homedir(), 'Documents', 'Calibre Library');
 
-async function main() {
-  console.log(`Reading Calibre library from: ${CALIBRE_PATH}\n`);
+function readCalibreMetadata(calibrePath) {
+  const metadataDb = path.join(calibrePath, 'metadata.db');
+  const calibreDb = new Database(metadataDb, { readonly: true });
+  try {
+    const query = `
+      SELECT
+        b.id,
+        b.title,
+        b.pubdate,
+        GROUP_CONCAT(a.name, ' & ') as authors,
+        (SELECT name FROM publishers WHERE id IN (SELECT publisher FROM books_publishers_link WHERE book = b.id) LIMIT 1) as publisher,
+        (SELECT val FROM identifiers WHERE book = b.id AND type = 'isbn' LIMIT 1) as isbn
+      FROM books b
+      LEFT JOIN books_authors_link bal ON b.id = bal.book
+      LEFT JOIN authors a ON bal.author = a.id
+      GROUP BY b.id
+    `;
+    return calibreDb.prepare(query).all();
+  } finally {
+    calibreDb.close();
+  }
+}
 
-  const calibreDb = new Database(METADATA_DB, { readonly: true });
+function parseCalibrePubYear(pubdate) {
+  if (!pubdate) return null;
+  const date = new Date(pubdate);
+  if (isNaN(date) || date.getFullYear() <= 100) return null;
+  return date.getFullYear().toString();
+}
 
-  // Query to get books with publisher, pubdate, and ISBN
-  const query = `
-    SELECT
-      b.id,
-      b.title,
-      b.pubdate,
-      GROUP_CONCAT(a.name, ' & ') as authors,
-      (SELECT name FROM publishers WHERE id IN (SELECT publisher FROM books_publishers_link WHERE book = b.id) LIMIT 1) as publisher,
-      (SELECT val FROM identifiers WHERE book = b.id AND type = 'isbn' LIMIT 1) as isbn
-    FROM books b
-    LEFT JOIN books_authors_link bal ON b.id = bal.book
-    LEFT JOIN authors a ON bal.author = a.id
-    GROUP BY b.id
-  `;
-
-  const calibreBooks = calibreDb.prepare(query).all();
-  console.log(`Found ${calibreBooks.length} books in Calibre\n`);
+// updateCalibreMetadata(opts)
+//   opts.ids  — optional array of our-DB book IDs to restrict updates to.
+//   opts.onProgress — called with { phase, current, total, title } per book.
+async function updateCalibreMetadata({ calibrePath = DEFAULT_CALIBRE_PATH, ids, onProgress } = {}) {
+  const calibreBooks = readCalibreMetadata(calibrePath);
+  const total = calibreBooks.length;
+  const idFilter = Array.isArray(ids) ? new Set(ids) : null;
 
   let updated = 0;
   let skipped = 0;
   let notFound = 0;
 
-  for (const book of calibreBooks) {
-    // Parse publish date
-    let publishDate = null;
-    if (book.pubdate) {
-      const date = new Date(book.pubdate);
-      if (!isNaN(date) && date.getFullYear() > 100) {
-        publishDate = date.getFullYear().toString();
-      }
-    }
+  for (let i = 0; i < calibreBooks.length; i++) {
+    const book = calibreBooks[i];
+    onProgress?.({ phase: 'metadata', current: i + 1, total, title: book.title });
 
-    // Skip if no metadata to update
+    const publishDate = parseCalibrePubYear(book.pubdate);
+
     if (!book.publisher && !publishDate && !book.isbn) {
       skipped++;
       continue;
     }
 
-    // Find matching book in our database
     const result = await pool.query(
       `SELECT id, publisher, publish_date, isbn FROM books
        WHERE title = $1 AND author = $2 AND type = 'ebook'`,
@@ -63,13 +71,16 @@ async function main() {
 
     const dbBook = result.rows[0];
 
-    // Skip if already has all metadata
+    if (idFilter && !idFilter.has(dbBook.id)) {
+      skipped++;
+      continue;
+    }
+
     if (dbBook.publisher && dbBook.publish_date && dbBook.isbn) {
       skipped++;
       continue;
     }
 
-    // Update with new metadata
     await pool.query(
       `UPDATE books SET
          publisher = COALESCE(publisher, $1),
@@ -79,18 +90,29 @@ async function main() {
        WHERE id = $4`,
       [book.publisher, publishDate, book.isbn, dbBook.id]
     );
-
-    console.log(`Updated: ${book.title}`);
     updated++;
   }
 
-  calibreDb.close();
-  await pool.end();
-
-  console.log(`\nDone! Updated: ${updated}, Skipped: ${skipped}, Not found: ${notFound}`);
+  return { updated, skipped, notFound, total };
 }
 
-main().catch(err => {
-  console.error('Error:', err);
-  process.exit(1);
-});
+module.exports = { updateCalibreMetadata, DEFAULT_CALIBRE_PATH };
+
+if (require.main === module) {
+  const calibrePath = process.argv[2] || DEFAULT_CALIBRE_PATH;
+  console.log(`Reading Calibre library from: ${calibrePath}\n`);
+  updateCalibreMetadata({
+    calibrePath,
+    onProgress: ({ current, total, title }) => {
+      console.log(`[${current}/${total}] ${title}`);
+    },
+  })
+    .then(({ updated, skipped, notFound }) => {
+      console.log(`\nDone! Updated: ${updated}, Skipped: ${skipped}, Not found: ${notFound}`);
+      return pool.end();
+    })
+    .catch(err => {
+      console.error('Error:', err);
+      pool.end().finally(() => process.exit(1));
+    });
+}

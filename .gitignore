@@ -4,3 +4,9 @@ node_modules/
 .DS_Store
 .claude/
 covers/
+config.json
+
+# User data / run artifacts
+isbns.txt
+failed-conversions.txt
+add-physical-protocol-*.txt

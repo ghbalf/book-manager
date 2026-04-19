@@ -3,85 +3,99 @@ const path = require('path');
 const os = require('os');
 const { pool } = require('./db');
 
-// Calibre library path
-const CALIBRE_PATH = process.argv[2] || path.join(os.homedir(), 'Documents', 'Calibre Library');
-const METADATA_DB = path.join(CALIBRE_PATH, 'metadata.db');
+const DEFAULT_CALIBRE_PATH = path.join(os.homedir(), 'Documents', 'Calibre Library');
 
-async function importFromCalibre() {
-  console.log(`Reading Calibre library from: ${CALIBRE_PATH}`);
+function readCalibreBooks(calibrePath) {
+  const metadataDb = path.join(calibrePath, 'metadata.db');
+  const calibreDb = new Database(metadataDb, { readonly: true });
+  try {
+    const query = `
+      SELECT
+        b.id,
+        b.title,
+        b.path as book_path,
+        b.pubdate,
+        GROUP_CONCAT(a.name, ' & ') as authors,
+        (SELECT val FROM identifiers WHERE book = b.id AND type = 'isbn' LIMIT 1) as isbn,
+        (SELECT name FROM publishers WHERE id IN (SELECT publisher FROM books_publishers_link WHERE book = b.id) LIMIT 1) as publisher,
+        (SELECT format || '/' || name || '.' || lower(format) FROM data WHERE book = b.id LIMIT 1) as file_name
+      FROM books b
+      LEFT JOIN books_authors_link bal ON b.id = bal.book
+      LEFT JOIN authors a ON bal.author = a.id
+      GROUP BY b.id
+      ORDER BY b.title
+    `;
+    return calibreDb.prepare(query).all();
+  } finally {
+    calibreDb.close();
+  }
+}
 
-  // Open Calibre's SQLite database (read-only)
-  const calibreDb = new Database(METADATA_DB, { readonly: true });
+function parseCalibrePubYear(pubdate) {
+  if (!pubdate) return null;
+  const date = new Date(pubdate);
+  if (isNaN(date) || date.getFullYear() <= 100) return null;
+  return date.getFullYear().toString();
+}
 
-  // Query to get books with authors, ISBN, publisher, pubdate, and file paths
-  const query = `
-    SELECT
-      b.id,
-      b.title,
-      b.path as book_path,
-      b.pubdate,
-      GROUP_CONCAT(a.name, ' & ') as authors,
-      (SELECT val FROM identifiers WHERE book = b.id AND type = 'isbn' LIMIT 1) as isbn,
-      (SELECT name FROM publishers WHERE id IN (SELECT publisher FROM books_publishers_link WHERE book = b.id) LIMIT 1) as publisher,
-      (SELECT format || '/' || name || '.' || lower(format) FROM data WHERE book = b.id LIMIT 1) as file_name
-    FROM books b
-    LEFT JOIN books_authors_link bal ON b.id = bal.book
-    LEFT JOIN authors a ON bal.author = a.id
-    GROUP BY b.id
-    ORDER BY b.title
-  `;
+async function importFromCalibre({ calibrePath = DEFAULT_CALIBRE_PATH, onProgress } = {}) {
+  const books = readCalibreBooks(calibrePath);
+  const total = books.length;
 
-  const books = calibreDb.prepare(query).all();
-  console.log(`Found ${books.length} books in Calibre`);
-
+  const insertedIds = [];
   let imported = 0;
   let skipped = 0;
 
-  for (const book of books) {
-    // Build full file path
+  for (let i = 0; i < books.length; i++) {
+    const book = books[i];
+    onProgress?.({ phase: 'import', current: i + 1, total, title: book.title });
+
     const filePath = book.file_name
-      ? path.join(CALIBRE_PATH, book.book_path, book.file_name)
+      ? path.join(calibrePath, book.book_path, book.file_name)
       : null;
 
-    // Check if book already exists (by title and author)
     const existing = await pool.query(
       'SELECT id FROM books WHERE title = $1 AND author = $2',
       [book.title, book.authors]
     );
 
     if (existing.rows.length > 0) {
-      console.log(`Skipping (exists): ${book.title}`);
       skipped++;
       continue;
     }
 
-    // Parse publish date (Calibre stores as ISO timestamp)
-    let publishDate = null;
-    if (book.pubdate) {
-      const date = new Date(book.pubdate);
-      if (!isNaN(date) && date.getFullYear() > 100) {
-        publishDate = date.getFullYear().toString();
-      }
-    }
+    const publishDate = parseCalibrePubYear(book.pubdate);
 
-    // Insert into our database
-    await pool.query(
+    const result = await pool.query(
       `INSERT INTO books (title, author, isbn, publisher, publish_date, type, file_path, reading_status, progress)
-       VALUES ($1, $2, $3, $4, $5, 'ebook', $6, 'unread', 0)`,
+       VALUES ($1, $2, $3, $4, $5, 'ebook', $6, 'unread', 0)
+       RETURNING id`,
       [book.title, book.authors, book.isbn, book.publisher, publishDate, filePath]
     );
-
-    console.log(`Imported: ${book.title}`);
+    insertedIds.push(result.rows[0].id);
     imported++;
   }
 
-  calibreDb.close();
-  await pool.end();
-
-  console.log(`\nDone! Imported: ${imported}, Skipped: ${skipped}`);
+  return { imported, skipped, total, ids: insertedIds };
 }
 
-importFromCalibre().catch(err => {
-  console.error('Error importing:', err);
-  process.exit(1);
-});
+module.exports = { importFromCalibre, DEFAULT_CALIBRE_PATH };
+
+if (require.main === module) {
+  const calibrePath = process.argv[2] || DEFAULT_CALIBRE_PATH;
+  console.log(`Reading Calibre library from: ${calibrePath}`);
+  importFromCalibre({
+    calibrePath,
+    onProgress: ({ current, total, title }) => {
+      console.log(`[${current}/${total}] ${title}`);
+    },
+  })
+    .then(({ imported, skipped }) => {
+      console.log(`\nDone! Imported: ${imported}, Skipped: ${skipped}`);
+      return pool.end();
+    })
+    .catch(err => {
+      console.error('Error importing:', err);
+      pool.end().finally(() => process.exit(1));
+    });
+}

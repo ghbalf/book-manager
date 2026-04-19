@@ -1,40 +1,5 @@
 const { pool } = require('./db');
-
-async function lookupCover(isbn) {
-  const cleanISBN = isbn.replace(/[-\s]/g, '');
-
-  // Try Open Library API
-  try {
-    const url = `https://openlibrary.org/api/books?bibkeys=ISBN:${cleanISBN}&format=json&jscmd=data`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    const key = `ISBN:${cleanISBN}`;
-    if (data[key]?.cover?.medium) {
-      return data[key].cover.medium;
-    }
-    if (data[key]?.cover?.small) {
-      return data[key].cover.small;
-    }
-  } catch (error) {
-    // Continue to Google Books
-  }
-
-  // Try Google Books API as fallback
-  try {
-    const googleUrl = `https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanISBN}`;
-    const googleResponse = await fetch(googleUrl);
-    const googleData = await googleResponse.json();
-
-    if (googleData.items?.[0]?.volumeInfo?.imageLinks?.thumbnail) {
-      return googleData.items[0].volumeInfo.imageLinks.thumbnail;
-    }
-  } catch (error) {
-    // No cover found
-  }
-
-  return null;
-}
+const { lookupCover } = require('./lookup-isbn');
 
 async function main() {
   console.log('Fetching covers for physical books...\n');
