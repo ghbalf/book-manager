@@ -21,9 +21,16 @@ function broadcast(event) {
 
 function subscribe(send) {
   state.subscribers.add(send);
-  if (state.lastProgress) send(state.lastProgress);
+  const unsubscribe = () => state.subscribers.delete(send);
+  if (state.lastProgress) {
+    send(state.lastProgress);
+    // Terminal events close the stream; sending anything more is a write-after-end.
+    if (state.lastProgress.type === 'done' || state.lastProgress.type === 'error') {
+      return unsubscribe;
+    }
+  }
   if (!state.running) send({ type: 'idle' });
-  return () => state.subscribers.delete(send);
+  return unsubscribe;
 }
 
 function isRunning() {

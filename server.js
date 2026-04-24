@@ -261,6 +261,7 @@ app.get('/api/calibre/sync/stream', (req, res) => {
   res.flushHeaders();
 
   const send = (event) => {
+    if (res.writableEnded) return;
     res.write(`data: ${JSON.stringify(event)}\n\n`);
     if (event.type === 'done' || event.type === 'error') {
       res.end();

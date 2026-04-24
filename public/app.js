@@ -144,7 +144,7 @@ function setupEventListeners() {
   });
 
   // Sync from Calibre
-  document.getElementById('syncBtn').addEventListener('click', startSync);
+  document.getElementById('syncBtn').addEventListener('click', () => startSync());
   document.getElementById('syncCloseBtn').addEventListener('click', closeSyncModal);
 
   // Config
@@ -577,11 +577,16 @@ async function startSync(endpoint, titleKey) {
   try {
     const res = await fetch(endpoint, { method: 'POST' });
     if (!res.ok && res.status !== 409) {
-      showSyncError(t('syncFailed'));
+      let detail = `HTTP ${res.status}`;
+      try {
+        const body = await res.json();
+        if (body && body.error) detail = body.error;
+      } catch (_) { /* body wasn't JSON */ }
+      showSyncError(`${t('syncFailed')}: ${detail}`);
       return;
     }
   } catch (err) {
-    showSyncError(t('syncFailed'));
+    showSyncError(`${t('syncFailed')}: ${err.message || err}`);
     return;
   }
 
@@ -612,9 +617,13 @@ function closeSyncModal() {
 function attachSyncStream() {
   if (syncSource) syncSource.close();
   syncSource = new EventSource('/api/calibre/sync/stream');
+  let receivedAny = false;
+  let terminated = false;
 
   syncSource.onmessage = (e) => {
+    receivedAny = true;
     const event = JSON.parse(e.data);
+    if (event.type === 'done' || event.type === 'error') terminated = true;
     handleSyncEvent(event);
   };
 
@@ -622,6 +631,10 @@ function attachSyncStream() {
     if (syncSource) {
       syncSource.close();
       syncSource = null;
+    }
+    // Clean close after a terminal event is expected. Anything else is a real problem worth surfacing.
+    if (!terminated) {
+      showSyncError(receivedAny ? t('syncStreamLost') : t('syncStreamFailed'));
     }
   };
 }
