@@ -782,7 +782,7 @@ async function handleIsbnLookup() {
     }
     if (!res.ok) throw new Error('Lookup failed');
     const book = await res.json();
-    applyLookupResult(book);
+    await applyLookupResult(book);
   } catch (err) {
     console.error(err);
     alert(t('lookupFailed'));
@@ -791,7 +791,7 @@ async function handleIsbnLookup() {
   }
 }
 
-function applyLookupResult(book) {
+async function applyLookupResult(book) {
   const mapping = [
     ['title', book.title, t('labelTitle')],
     ['author', book.authors, t('labelAuthor')],
@@ -801,17 +801,90 @@ function applyLookupResult(book) {
     ['coverUrl', book.cover_url, t('labelCoverUrl')],
   ];
 
+  const conflicts = [];
   for (const [fieldId, value, label] of mapping) {
     if (!value) continue;
     const el = document.getElementById(fieldId);
     if (!el.value) {
       el.value = value;
     } else if (el.value !== value) {
-      if (confirm(`${t('lookupOverwritePrompt')}\n\n${label}: ${el.value}\n→ ${value}`)) {
-        el.value = value;
-      }
+      conflicts.push({ fieldId, label, currentValue: el.value, newValue: value });
     }
   }
+
+  if (conflicts.length === 0) return;
+
+  const chosen = await promptOverwrite(conflicts);
+  if (!chosen) return;
+  for (const c of conflicts) {
+    if (chosen.has(c.fieldId)) {
+      document.getElementById(c.fieldId).value = c.newValue;
+    }
+  }
+}
+
+function promptOverwrite(conflicts) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('overwriteModal');
+    const list = document.getElementById('overwriteDiffList');
+    list.replaceChildren();
+
+    for (const c of conflicts) {
+      const row = document.createElement('label');
+      row.className = 'overwrite-row';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = true;
+      checkbox.dataset.fieldId = c.fieldId;
+
+      const info = document.createElement('div');
+      const label = document.createElement('div');
+      label.className = 'overwrite-label';
+      label.textContent = c.label;
+      const current = document.createElement('div');
+      current.className = 'overwrite-value overwrite-current';
+      current.textContent = c.currentValue;
+      const next = document.createElement('div');
+      next.className = 'overwrite-value overwrite-new';
+      next.textContent = c.newValue;
+      info.appendChild(label);
+      info.appendChild(current);
+      info.appendChild(next);
+
+      row.appendChild(checkbox);
+      row.appendChild(info);
+      list.appendChild(row);
+    }
+
+    const applyBtn = document.getElementById('overwriteApplyBtn');
+    const cancelBtn = document.getElementById('overwriteCancelBtn');
+
+    const cleanup = () => {
+      modal.style.display = 'none';
+      applyBtn.removeEventListener('click', onApply);
+      cancelBtn.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onBackdrop);
+    };
+    const onApply = () => {
+      const selected = new Set();
+      for (const cb of list.querySelectorAll('input[type="checkbox"]')) {
+        if (cb.checked) selected.add(cb.dataset.fieldId);
+      }
+      cleanup();
+      resolve(selected);
+    };
+    const onCancel = () => {
+      cleanup();
+      resolve(null);
+    };
+    const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+
+    applyBtn.addEventListener('click', onApply);
+    cancelBtn.addEventListener('click', onCancel);
+    modal.addEventListener('click', onBackdrop);
+    modal.style.display = 'block';
+  });
 }
 
 async function handleCoverLookup() {

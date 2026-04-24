@@ -55,6 +55,7 @@ const translations = {
     // Buttons
     cancel: 'Cancel',
     save: 'Save',
+    apply: 'Apply',
     delete: 'Delete',
     edit: 'Edit',
     read: 'Read',
@@ -146,6 +147,9 @@ const translations = {
     lookupNotFound: 'No match found for this ISBN.',
     lookupFailed: 'Lookup failed. Please try again.',
     lookupOverwritePrompt: 'Overwrite the existing value?',
+    overwriteModalTitle: 'Confirm overwrites',
+    overwriteModalHelp: 'Some fields already have values. Uncheck any you want to keep, then click Apply.',
+    overwriteEmptyValue: '(empty)',
   },
   de: {
     // Page
@@ -202,6 +206,7 @@ const translations = {
     // Buttons
     cancel: 'Abbrechen',
     save: 'Speichern',
+    apply: 'Übernehmen',
     delete: 'Löschen',
     edit: 'Bearbeiten',
     read: 'Lesen',
@@ -293,6 +298,9 @@ const translations = {
     lookupNotFound: 'Kein Treffer für diese ISBN.',
     lookupFailed: 'Nachschlagen fehlgeschlagen. Bitte erneut versuchen.',
     lookupOverwritePrompt: 'Vorhandenen Wert überschreiben?',
+    overwriteModalTitle: 'Überschreiben bestätigen',
+    overwriteModalHelp: 'Einige Felder haben bereits Werte. Deaktiviere diejenigen, die du behalten möchtest, und klicke dann auf Übernehmen.',
+    overwriteEmptyValue: '(leer)',
   }
 };
 

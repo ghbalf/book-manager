@@ -693,6 +693,64 @@ header {
   margin-top: 20px;
 }
 
+/* Overwrite confirmation diff */
+.overwrite-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+
+.overwrite-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-input);
+  border-radius: 6px;
+  cursor: pointer;
+  background: var(--bg-input-readonly);
+}
+
+.overwrite-row:hover {
+  border-color: var(--btn-primary-bg);
+}
+
+.overwrite-row input[type="checkbox"] {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--btn-primary-bg);
+}
+
+.overwrite-label {
+  font-weight: 600;
+  color: var(--text-heading);
+  margin-bottom: 4px;
+}
+
+.overwrite-value {
+  font-size: 0.9em;
+  word-break: break-word;
+}
+
+.overwrite-current {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.overwrite-new {
+  color: var(--text-primary);
+}
+
+.overwrite-empty {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
 /* Empty state */
 .empty-state {
   text-align: center;

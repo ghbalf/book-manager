@@ -257,6 +257,19 @@
     </div>
   </div>
 
+  <!-- Overwrite Confirmation Modal -->
+  <div id="overwriteModal" class="modal">
+    <div class="modal-content modal-small">
+      <h2 data-i18n="overwriteModalTitle">Confirm overwrites</h2>
+      <p data-i18n="overwriteModalHelp">Some fields already have values. Select which ones to replace:</p>
+      <div id="overwriteDiffList" class="overwrite-diff"></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" id="overwriteCancelBtn" data-i18n="cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="overwriteApplyBtn" data-i18n="apply">Apply</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Epub Reader Overlay -->
   <div id="readerOverlay" class="reader-overlay">
     <div class="reader-toolbar">
