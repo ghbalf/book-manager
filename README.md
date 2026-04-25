@@ -88,14 +88,7 @@ createdb bookmanager
 psql -d bookmanager -f schema.sql
 ```
 
-3. (Existing installs only) Apply the `calibre_id` migration to switch Calibre
-sync dedup from `(title, author)` to Calibre's stable `b.id`:
-```bash
-node migrate-add-calibre-id.js
-```
-Idempotent. Reports any Calibre `b.id`s that don't map to a manager record —
-those are duplicates inside Calibre that the next sync would otherwise import
-as new ebooks.
+If you are upgrading an existing install, see [Database Migrations](#database-migrations) below.
 
 ### Environment Variables
 
@@ -488,6 +481,28 @@ ALTER TABLE books ALTER COLUMN author TYPE TEXT;
 ALTER TABLE books ALTER COLUMN location TYPE TEXT;
 ALTER TABLE books ALTER COLUMN file_path TYPE TEXT;
 ALTER TABLE books ALTER COLUMN cover_url TYPE TEXT;
+```
+
+### Add `calibre_id` for stable Calibre sync dedup (v0.2.0-alpha)
+
+Run the migration script — it applies the schema change AND backfills
+existing rows by matching `(title, author)` against your Calibre
+`metadata.db`:
+
+```bash
+node migrate-add-calibre-id.js
+sudo systemctl restart bookmanager   # or however your unit is named
+```
+
+Idempotent. The script reports any Calibre `b.id`s that didn't get
+mapped to a manager record (duplicates inside Calibre); the next sync
+would otherwise import them as new manager rows.
+
+For reference, the raw SQL it issues:
+```sql
+ALTER TABLE books ADD COLUMN IF NOT EXISTS calibre_id INTEGER;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_books_calibre_id
+  ON books(calibre_id) WHERE calibre_id IS NOT NULL;
 ```
 
 ---
