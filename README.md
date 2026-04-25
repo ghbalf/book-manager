@@ -45,6 +45,7 @@ books/
 ├── config.js                   # Editable-settings loader (config.json)
 ├── config.json                 # User config (gitignored, auto-created)
 ├── schema.sql                  # Database schema
+├── migrate-add-calibre-id.js   # One-shot migration for existing installs
 ├── public/                     # Frontend files
 │   ├── index.html              # Main UI
 │   ├── style.css               # Styles
@@ -162,7 +163,9 @@ node import-calibre.js [calibre-path]
 - Reads Calibre's `metadata.db` SQLite database
 - Extracts title, authors, ISBN, publisher, publish date, and file paths
 - Imports books as ebooks with status "unread"
-- Skips books that already exist (matching title + author)
+- Dedups against the manager DB by Calibre's `b.id` (stored as `books.calibre_id`).
+  Each Calibre row maps to at most one manager record; duplicates inside Calibre
+  yield independent manager rows.
 
 Also exported as `importFromCalibre({ calibrePath, onProgress })` for
 in-process use (returns `{ imported, skipped, ids }`).
