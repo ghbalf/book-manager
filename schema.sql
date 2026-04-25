@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS books (
   progress INTEGER DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
   rating INTEGER CHECK (rating >= 1 AND rating <= 5),
   notes TEXT,
+  calibre_id INTEGER,               -- Calibre b.id for ebooks synced from Calibre; NULL otherwise
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -27,3 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_books_isbn ON books(isbn);
 CREATE INDEX IF NOT EXISTS idx_books_genre ON books(genre);
 CREATE INDEX IF NOT EXISTS idx_books_type ON books(type);
 CREATE INDEX IF NOT EXISTS idx_books_reading_status ON books(reading_status);
+
+-- Each Calibre b.id can map to at most one manager record. Partial index
+-- so multiple non-Calibre records (physical books, manual ebooks) can coexist with NULL.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_books_calibre_id ON books(calibre_id) WHERE calibre_id IS NOT NULL;

@@ -54,9 +54,12 @@ async function importFromCalibre({ calibrePath = DEFAULT_CALIBRE_PATH, onProgres
       ? path.join(calibrePath, book.book_path, book.file_name)
       : null;
 
+    // Dedup on Calibre's b.id (stored as calibre_id). Each Calibre book maps to
+    // at most one manager record; duplicate (title, author) pairs in Calibre
+    // yield independent manager rows now.
     const existing = await pool.query(
-      'SELECT id FROM books WHERE title = $1 AND author = $2',
-      [book.title, book.authors]
+      'SELECT id FROM books WHERE calibre_id = $1',
+      [book.id]
     );
 
     if (existing.rows.length > 0) {
@@ -67,10 +70,10 @@ async function importFromCalibre({ calibrePath = DEFAULT_CALIBRE_PATH, onProgres
     const publishDate = parseCalibrePubYear(book.pubdate);
 
     const result = await pool.query(
-      `INSERT INTO books (title, author, isbn, publisher, publish_date, type, file_path, reading_status, progress)
-       VALUES ($1, $2, $3, $4, $5, 'ebook', $6, 'unread', 0)
+      `INSERT INTO books (title, author, isbn, publisher, publish_date, type, file_path, reading_status, progress, calibre_id)
+       VALUES ($1, $2, $3, $4, $5, 'ebook', $6, 'unread', 0, $7)
        RETURNING id`,
-      [book.title, book.authors, book.isbn, book.publisher, publishDate, filePath]
+      [book.title, book.authors, book.isbn, book.publisher, publishDate, filePath, book.id]
     );
     insertedIds.push(result.rows[0].id);
     imported++;

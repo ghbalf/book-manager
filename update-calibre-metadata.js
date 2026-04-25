@@ -60,8 +60,8 @@ async function updateCalibreMetadata({ calibrePath = DEFAULT_CALIBRE_PATH, ids, 
 
     const result = await pool.query(
       `SELECT id, publisher, publish_date, isbn FROM books
-       WHERE title = $1 AND author = $2 AND type = 'ebook'`,
-      [book.title, book.authors]
+       WHERE calibre_id = $1`,
+      [book.id]
     );
 
     if (result.rows.length === 0) {

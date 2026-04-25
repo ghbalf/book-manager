@@ -87,6 +87,15 @@ createdb bookmanager
 psql -d bookmanager -f schema.sql
 ```
 
+3. (Existing installs only) Apply the `calibre_id` migration to switch Calibre
+sync dedup from `(title, author)` to Calibre's stable `b.id`:
+```bash
+node migrate-add-calibre-id.js
+```
+Idempotent. Reports any Calibre `b.id`s that don't map to a manager record —
+those are duplicates inside Calibre that the next sync would otherwise import
+as new ebooks.
+
 ### Environment Variables
 
 Secrets and connection info live in environment variables:
